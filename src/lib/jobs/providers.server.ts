@@ -17,6 +17,15 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
   return period && period.toUpperCase() !== "YEAR" ? `${range}/${period.toLowerCase()}` : range;
 }
 
+function countryName(code?: string | null): string | null {
+  if (!code) return null;
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 // ---------- JSearch (RapidAPI) ----------
 interface JSearchJob {
   job_id: string;
@@ -113,7 +122,7 @@ export async function fetchJSearchJobs(apiKey: string, query: string, country = 
       field: classifyField(j.job_title),
       jobType: classifyJobType(j.job_title, j.job_employment_type ?? undefined),
       workMode: classifyWorkMode(text, j.job_is_remote),
-      city: j.job_city ?? j.job_country ?? "—",
+      city: j.job_city || countryName(j.job_country) || "—",
       salary: formatSalary(j.job_min_salary, j.job_max_salary, j.job_salary_currency, j.job_salary_period),
       postedAt: j.job_posted_at_datetime_utc ?? new Date().toISOString(),
       applyUrl: j.job_apply_link,
