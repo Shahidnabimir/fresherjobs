@@ -80,7 +80,7 @@ function AuthPage() {
     }
   }
 
-  async function social(provider: "google" | "lovable") {
+  async function social(provider: "google") {
     const result = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: window.location.origin + "/auth?redirect=" + encodeURIComponent(target),
     });
@@ -116,9 +116,6 @@ function AuthPage() {
                 <GoogleLogo />
                 Continue with Google
               </Button>
-              <button type="button" className="lovable-auth-button" onClick={() => social("lovable")}>
-                Continue with Lovable
-              </button>
               <div className="my-3 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="h-px flex-1 bg-border" /> or with email <span className="h-px flex-1 bg-border" />
               </div>
