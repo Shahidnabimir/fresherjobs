@@ -46,7 +46,7 @@ export async function fetchJSearchJobs(apiKey: string, query: string): Promise<J
   const res = await fetch(url, {
     headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": "jsearch.p.rapidapi.com" },
   });
-  if (!res.ok) throw new Error(`JSearch responded ${res.status}`);
+  if (!res.ok) throw new Error(`JSearch responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const body = (await res.json()) as { data?: JSearchJob[] };
   return (body.data ?? []).map((j) => {
     const text = `${j.job_title} ${j.job_description ?? ""}`;
@@ -96,7 +96,7 @@ export async function fetchAdzunaJobs(appId: string, appKey: string, country: st
   url.searchParams.set("max_days_old", "30");
   url.searchParams.set("content-type", "application/json");
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Adzuna responded ${res.status}`);
+  if (!res.ok) throw new Error(`Adzuna responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const body = (await res.json()) as { results?: AdzunaJob[] };
   const currency = country === "in" ? "INR" : country === "gb" ? "GBP" : "USD";
   return (body.results ?? []).map((j) => {
