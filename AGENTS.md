@@ -34,3 +34,4 @@ use the editor.
 - Every job source must pass `applyFresherFilter` before reaching the UI — the fresher-only rule is the product's core promise.
 - Tracker, profile and theme persist in browser localStorage via `src/lib/app-state.tsx` (no accounts yet); pure state transitions live in `src/lib/tracker.ts` so they stay testable.
 - Relative dates and posted-date filtering use the server's `fetchedAt` as "now" so SSR and client render identically.
+- JSearch calls use `/search-v2` with cursor pagination, a small page cap and an edge cache, because every page costs a request from the free monthly quota.
