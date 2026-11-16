@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
   component: FeedPage,
 });
 
-const SOURCE_LABEL = { sample: "Sample listings", jsearch: "Live · JSearch", adzuna: "Live · Adzuna" } as const;
+const SOURCE_LABEL = { jsearch: "Live · JSearch", adzuna: "Live · Adzuna" } as const;
 
 function FeedPage() {
   const { jobs, source, excludedCount, fetchedAt, notice } = Route.useLoaderData();
@@ -72,7 +72,7 @@ function FeedPage() {
           </span>
         </p>
         <p className="font-mono text-xs text-muted-foreground">
-          {SOURCE_LABEL[source]}
+          {source ? SOURCE_LABEL[source] : "Live feed offline"}
           {excludedCount > 0 && ` · ${excludedCount} non-fresher listings hidden`}
         </p>
       </div>
@@ -94,6 +94,14 @@ function FeedPage() {
               match={profileSet ? matchProfile(job, profile) : null}
             />
           ))}
+        </div>
+      ) : jobs.length === 0 ? (
+        <div className="card-surface mt-5 flex flex-col items-center gap-3 px-6 py-16 text-center">
+          <SearchX className="size-8 text-muted-foreground" />
+          <p className="font-display text-lg font-semibold text-foreground">No live fresher roles right now</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            New listings are pulled in regularly — check back in a little while.
+          </p>
         </div>
       ) : (
         <div className="card-surface mt-5 flex flex-col items-center gap-3 px-6 py-16 text-center">

@@ -3,18 +3,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { DEFAULT_JSEARCH_QUERY } from "./config";
 import { applyFresherFilter } from "./fresher-filter";
 import { fetchAdzunaJobs, fetchJSearchJobs } from "./providers.server";
-import { getSampleJobs } from "./sample-jobs";
 import type { Job, JobSource, JobsResult } from "./types";
 
 /**
- * Single entry point for the job feed.
- * Provider priority: JSearch (JSEARCH_API_KEY or RAPIDAPI_KEY) → Adzuna (ADZUNA_APP_ID + ADZUNA_APP_KEY) → sample data.
+ * Single entry point for the job feed — live data only, no mock listings.
+ * Provider priority: JSearch (JSEARCH_API_KEY or RAPIDAPI_KEY) → Adzuna (ADZUNA_APP_ID + ADZUNA_APP_KEY).
  * Every source passes through the strict fresher filter before reaching the UI.
  */
 export const getJobs = createServerFn({ method: "GET" }).handler(async (): Promise<JobsResult> => {
   const now = Date.now();
-  let raw: Job[] | null = null;
-  let source: JobSource = "sample";
+  let raw: Job[] = [];
+  let source: JobSource | null = null;
   let notice: string | undefined;
 
   const jsearchKey = process.env["JSEARCH_API_KEY"] ?? process.env["RAPIDAPI_KEY"];
@@ -37,16 +36,14 @@ export const getJobs = createServerFn({ method: "GET" }).handler(async (): Promi
         "fresher graduate trainee intern entry junior",
       );
       source = "adzuna";
+    } else {
+      notice = "The live job feed isn't connected yet.";
     }
   } catch (error) {
-    console.error("[jobs] live provider failed, using sample data", error);
-    notice = "Live jobs are unavailable right now — showing sample listings.";
-    raw = null;
-  }
-
-  if (!raw || raw.length === 0) {
-    raw = getSampleJobs(now);
-    source = "sample";
+    console.error("[jobs] live provider failed", error);
+    notice = "Live jobs couldn't be loaded right now — please try again shortly.";
+    raw = [];
+    source = null;
   }
 
   const { jobs, excludedCount } = applyFresherFilter(raw);

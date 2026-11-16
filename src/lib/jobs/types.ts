@@ -22,9 +22,9 @@ export const POSTED_WINDOWS = {
 } as const;
 export type PostedWindow = keyof typeof POSTED_WINDOWS;
 
-export type JobSource = "sample" | "jsearch" | "adzuna";
+export type JobSource = "jsearch" | "adzuna";
 
-/** Normalized job shape every provider (sample, JSearch, Adzuna) maps into. */
+/** Normalized job shape every provider (JSearch, Adzuna) maps into. */
 export interface Job {
   id: string;
   title: string;
@@ -81,7 +81,8 @@ export const EMPTY_PROFILE: FresherProfile = {
 
 export interface JobsResult {
   jobs: Job[];
-  source: JobSource;
+  /** Live provider that served the feed; null when none was reachable. */
+  source: JobSource | null;
   /** How many fetched listings were dropped by the fresher filter. */
   excludedCount: number;
   /** Server time (ms) the list was built — used as "now" for relative dates. */
