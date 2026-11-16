@@ -2,7 +2,7 @@ import type { Field, JobType, WorkMode } from "./types";
 
 const FIELD_KEYWORDS: [Field, RegExp][] = [
   ["Creative/Design", /\b(design|designer|ui|ux|graphic|creative|illustrat|video edit|animator)/i],
-  ["Tech/IT", /\b(software|developer|engineer(ing)? - ?(software|it)|frontend|backend|full ?stack|data|devops|cloud|qa|tester|it support|programmer|python|java|react|cyber|machine learning|ai)\b/i],
+  ["Tech/IT", /\b(software|developer|frontend|backend|full ?stack|data|devops|cloud|qa|tester|programmer|python|java|react|cyber|machine learning|it support|web)\b/i],
   ["Finance", /\b(financ|account|audit|tax|analyst|bank|investment|credit|ca\b|treasury)/i],
   ["Marketing", /\b(marketing|seo|content|social media|brand|digital|copywrit|pr\b|communications)/i],
   ["Sales", /\b(sales|business development|bde|bda|inside sales|account executive|telecaller)/i],
