@@ -1,5 +1,17 @@
-import { Link } from "@tanstack/react-router";
-import { Moon, Sun } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { LogOut, Moon, Sun } from "lucide-react";
+
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/lib/auth";
 
 import { Button } from "@/components/ui/button";
 import { useAppState } from "@/lib/app-state";
@@ -41,6 +53,7 @@ export function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-1">
           <ProfileDialog />
+          <AccountButton />
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle light or dark mode">
             <Moon className="dark:hidden" />
             <Sun className="hidden dark:block" />
@@ -48,5 +61,48 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function AccountButton() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  if (loading) return <span className="w-16" aria-hidden="true" />;
+  if (!user) {
+    return (
+      <Button asChild variant="ghost" size="sm">
+        <Link to="/auth" search={{ redirect: undefined }}>Sign in</Link>
+      </Button>
+    );
+  }
+
+  const label = (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "Account";
+  const initial = label.trim().charAt(0).toUpperCase() || "?";
+
+  async function signOut() {
+    await queryClient.cancelQueries();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", search: { redirect: undefined }, replace: true });
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="Account menu">
+          <span className="grid size-7 place-items-center rounded-full bg-fresh font-mono text-xs font-medium text-fresh-foreground">
+            {initial}
+          </span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="truncate font-normal text-muted-foreground">{user.email}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={signOut}>
+          <LogOut /> Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
