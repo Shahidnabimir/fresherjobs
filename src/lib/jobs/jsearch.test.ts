@@ -33,12 +33,12 @@ describe("JSearch live feed", () => {
       vi.fn(async () =>
         new Response(
           JSON.stringify({
-            data: [
+            data: { cursor: "next", jobs: [
               job("a", "Graduate Trainee – Operations", 0),
               job("b", "Senior Software Engineer", null),
               job("c", "Analyst", 36),
               job("d", "Sales Associate", null, ["2+ years of sales experience"]),
-            ],
+            ] },
           }),
         ),
       ),

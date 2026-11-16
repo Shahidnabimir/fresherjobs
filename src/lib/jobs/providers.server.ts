@@ -37,18 +37,21 @@ interface JSearchJob {
   job_required_experience?: { required_experience_in_months?: number | null };
 }
 
-export async function fetchJSearchJobs(apiKey: string, query: string): Promise<Job[]> {
-  const url = new URL("https://jsearch.p.rapidapi.com/search");
+export async function fetchJSearchJobs(apiKey: string, query: string, country = "in"): Promise<Job[]> {
+  // JSearch v5 serves search at /search-v2 (the legacy /search endpoint returns 404).
+  const url = new URL("https://jsearch.p.rapidapi.com/search-v2");
   url.searchParams.set("query", query);
-  url.searchParams.set("page", "1");
+  url.searchParams.set("country", country);
+  url.searchParams.set("language", "en");
   url.searchParams.set("num_pages", "2");
   url.searchParams.set("date_posted", "month");
   const res = await fetch(url, {
     headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": "jsearch.p.rapidapi.com" },
   });
   if (!res.ok) throw new Error(`JSearch responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const body = (await res.json()) as { data?: JSearchJob[] };
-  return (body.data ?? []).map((j) => {
+  const body = (await res.json()) as { data?: JSearchJob[] | { jobs?: JSearchJob[] } };
+  const list = Array.isArray(body.data) ? body.data : (body.data?.jobs ?? []);
+  return list.map((j) => {
     const text = `${j.job_title} ${j.job_description ?? ""}`;
     return {
       id: `js-${j.job_id}`,
