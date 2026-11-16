@@ -43,7 +43,7 @@ export interface Job {
   /** Display label for the experience requirement, e.g. "0–1 yr". */
   experience: string;
   /** Maximum required experience in months, when the source provides it. */
-  maxExperienceMonths?: number;
+  maxExperienceMonths?: number | undefined;
   /** Degree keywords this role accepts (empty = any graduate). */
   eligibleDegrees: string[];
   /** Graduation batches the role targets (empty = any). */
@@ -86,5 +86,5 @@ export interface JobsResult {
   excludedCount: number;
   /** Server time (ms) the list was built — used as "now" for relative dates. */
   fetchedAt: number;
-  notice?: string;
+  notice?: string | undefined;
 }

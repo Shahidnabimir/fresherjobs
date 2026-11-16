@@ -29,7 +29,9 @@ export function hasSeniorityTerm(text: string): boolean {
  * Strict fresher rule: only 0–1 year roles. A listing is dropped when its title
  * or requirements mention Senior / Lead / Manager or ask for 2+ years.
  */
-export function isFresherJob(job: Pick<Job, "title" | "requirements" | "experience" | "maxExperienceMonths">): boolean {
+export function isFresherJob(
+  job: Pick<Job, "title" | "requirements" | "experience"> & { maxExperienceMonths?: number | undefined },
+): boolean {
   if (job.maxExperienceMonths !== undefined && job.maxExperienceMonths > 12) return false;
   const requirementText = [job.experience, ...job.requirements].join(" \n ");
   if (hasSeniorityTerm(job.title) || hasSeniorityTerm(requirementText)) return false;
