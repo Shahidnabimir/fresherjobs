@@ -78,7 +78,7 @@ function AccountButton() {
     );
   }
 
-  const label = (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "Account";
+  const label = (user.user_metadata?.['full_name'] as string | undefined) ?? user.email ?? "Account";
   const initial = label.trim().charAt(0).toUpperCase() || "?";
 
   async function signOut() {
