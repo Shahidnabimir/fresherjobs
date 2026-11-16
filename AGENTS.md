@@ -35,3 +35,4 @@ use the editor.
 - Tracker, profile and theme persist in browser localStorage via `src/lib/app-state.tsx` (no accounts yet); pure state transitions live in `src/lib/tracker.ts` so they stay testable.
 - Relative dates and posted-date filtering use the server's `fetchedAt` as "now" so SSR and client render identically.
 - JSearch calls use `/search-v2` with cursor pagination, a small page cap and an edge cache, because every page costs a request from the free monthly quota.
+- Auth session state comes from the single `AuthProvider` in `src/lib/auth.tsx` (one `onAuthStateChange` listener); the job feed stays public and `/auth` is the only sign-in route — so there is one source of truth for "signed in".
