@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
+import { DEFAULT_JSEARCH_QUERY } from "./config";
 import { applyFresherFilter } from "./fresher-filter";
 import { fetchAdzunaJobs, fetchJSearchJobs } from "./providers.server";
 import { getSampleJobs } from "./sample-jobs";
@@ -7,7 +8,7 @@ import type { Job, JobSource, JobsResult } from "./types";
 
 /**
  * Single entry point for the job feed.
- * Provider priority: JSearch (JSEARCH_API_KEY) → Adzuna (ADZUNA_APP_ID + ADZUNA_APP_KEY) → sample data.
+ * Provider priority: JSearch (JSEARCH_API_KEY or RAPIDAPI_KEY) → Adzuna (ADZUNA_APP_ID + ADZUNA_APP_KEY) → sample data.
  * Every source passes through the strict fresher filter before reaching the UI.
  */
 export const getJobs = createServerFn({ method: "GET" }).handler(async (): Promise<JobsResult> => {
@@ -16,7 +17,7 @@ export const getJobs = createServerFn({ method: "GET" }).handler(async (): Promi
   let source: JobSource = "sample";
   let notice: string | undefined;
 
-  const jsearchKey = process.env["JSEARCH_API_KEY"];
+  const jsearchKey = process.env["JSEARCH_API_KEY"] ?? process.env["RAPIDAPI_KEY"];
   const adzunaId = process.env["ADZUNA_APP_ID"];
   const adzunaKey = process.env["ADZUNA_APP_KEY"];
 
@@ -24,7 +25,7 @@ export const getJobs = createServerFn({ method: "GET" }).handler(async (): Promi
     if (jsearchKey) {
       raw = await fetchJSearchJobs(
         jsearchKey,
-        process.env["JSEARCH_QUERY"] ?? "fresher entry level graduate trainee jobs in India",
+        process.env["JSEARCH_QUERY"] || DEFAULT_JSEARCH_QUERY,
       );
       source = "jsearch";
     } else if (adzunaId && adzunaKey) {
