@@ -67,7 +67,7 @@ export function ProfileDialog() {
             <div className="grid gap-1.5">
               <Label htmlFor="grad-year">Graduation year</Label>
               <Select
-                value={draft.graduationYear ? String(draft.graduationYear) : undefined}
+                value={draft.graduationYear ? String(draft.graduationYear) : ""}
                 onValueChange={(v) => setDraft((d) => ({ ...d, graduationYear: Number(v) }))}
               >
                 <SelectTrigger id="grad-year" className="h-10">

@@ -58,13 +58,13 @@ describe("sample feed", () => {
 });
 
 describe("tracker", () => {
-  const job = getSampleJobs(0)[0];
+  const job = getSampleJobs(0)[0]!;
   it("saving a job puts it in Saved", () => {
-    expect(saveJob({}, job, 1)[job.id].stage).toBe("saved");
+    expect(saveJob({}, job, 1)[job.id]?.stage).toBe("saved");
   });
   it("moving to Result records the outcome", () => {
     const state = moveJob(saveJob({}, job, 1), job.id, "result", 2, "rejected");
-    expect(state[job.id].stage).toBe("result");
-    expect(state[job.id].outcome).toBe("rejected");
+    expect(state[job.id]?.stage).toBe("result");
+    expect(state[job.id]?.outcome).toBe("rejected");
   });
 });
