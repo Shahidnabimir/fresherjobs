@@ -51,6 +51,7 @@ export async function fetchJSearchJobs(apiKey: string, query: string, country = 
   if (!res.ok) throw new Error(`JSearch responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const body = (await res.json()) as { data?: JSearchJob[] | { jobs?: JSearchJob[] } };
   const list = Array.isArray(body.data) ? body.data : (body.data?.jobs ?? []);
+  console.info(`[jobs] JSearch returned ${list.length} listings`, JSON.stringify(Object.keys((body.data as object) ?? {})).slice(0, 120));
   return list.map((j) => {
     const text = `${j.job_title} ${j.job_description ?? ""}`;
     return {
