@@ -1,36 +1,14 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { EMPTY_PROFILE, type FresherProfile, type Job } from "./jobs/types";
-import {
-  moveJob,
-  removeJob,
-  saveJob,
-  updateNotes,
-  type TrackerOutcome,
-  type TrackerStage,
-  type TrackerState,
-} from "./tracker";
+import { AppStateContext, type AppState } from "./app-state-context";
+import { EMPTY_PROFILE, type FresherProfile } from "./jobs/types";
+import { THEME_KEY } from "./theme";
+import { moveJob, removeJob, saveJob, updateNotes, type TrackerState } from "./tracker";
 
 const TRACKER_KEY = "fresheronly.tracker.v1";
 const PROFILE_KEY = "fresheronly.profile.v1";
-export const THEME_KEY = "fresheronly.theme";
 
-type Theme = "light" | "dark";
-
-interface AppState {
-  ready: boolean;
-  tracker: TrackerState;
-  save: (job: Job) => void;
-  move: (jobId: string, stage: TrackerStage, outcome?: TrackerOutcome | null) => void;
-  setNotes: (jobId: string, notes: string) => void;
-  remove: (jobId: string) => void;
-  profile: FresherProfile;
-  setProfile: (profile: FresherProfile) => void;
-  theme: Theme;
-  toggleTheme: () => void;
-}
-
-const AppStateContext = createContext<AppState | null>(null);
+type Theme = AppState["theme"];
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -95,6 +73,3 @@ export function useAppState(): AppState {
   if (!ctx) throw new Error("useAppState must be used inside AppStateProvider");
   return ctx;
 }
-
-/** Runs before paint to apply the saved/system theme and avoid a flash. */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem("${THEME_KEY}");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();`;
