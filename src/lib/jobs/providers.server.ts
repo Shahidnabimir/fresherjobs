@@ -37,21 +37,71 @@ interface JSearchJob {
   job_required_experience?: { required_experience_in_months?: number | null };
 }
 
+const JSEARCH_MAX_PAGES = 3;
+const JSEARCH_CACHE_SECONDS = 60 * 60;
+
+type JSearchBody = { data?: JSearchJob[] | { jobs?: JSearchJob[]; cursor?: string | null } };
+
+/** Edge cache (Cloudflare Cache API) when available; a no-op in local dev. */
+function edgeCache(): Cache | null {
+  const c = (globalThis as { caches?: CacheStorage & { default?: Cache } }).caches;
+  return c?.default ?? null;
+}
+
+async function fetchJSearchRaw(apiKey: string, query: string, country: string): Promise<JSearchJob[]> {
+  const jobs: JSearchJob[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < JSEARCH_MAX_PAGES; page++) {
+    const url = new URL("https://jsearch.p.rapidapi.com/search-v2");
+    url.searchParams.set("query", query);
+    url.searchParams.set("country", country);
+    url.searchParams.set("language", "en");
+    url.searchParams.set("date_posted", "month");
+    if (cursor) url.searchParams.set("cursor", cursor);
+    const res = await fetch(url, {
+      headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": "jsearch.p.rapidapi.com" },
+    });
+    if (!res.ok) {
+      const detail = `JSearch responded ${res.status}: ${(await res.text()).slice(0, 300)}`;
+      if (jobs.length > 0) {
+        console.warn(`[jobs] stopping pagination early — ${detail}`);
+        break;
+      }
+      throw new Error(detail);
+    }
+    const body = (await res.json()) as JSearchBody;
+    const data = body.data;
+    jobs.push(...(Array.isArray(data) ? data : (data?.jobs ?? [])));
+    const next = Array.isArray(data) ? null : (data?.cursor ?? null);
+    if (!next || next === cursor) break;
+    cursor = next;
+  }
+  return jobs;
+}
+
 export async function fetchJSearchJobs(apiKey: string, query: string, country = "in"): Promise<Job[]> {
-  // JSearch v5 serves search at /search-v2 (the legacy /search endpoint returns 404).
-  const url = new URL("https://jsearch.p.rapidapi.com/search-v2");
-  url.searchParams.set("query", query);
-  url.searchParams.set("country", country);
-  url.searchParams.set("language", "en");
-  url.searchParams.set("num_pages", "2");
-  url.searchParams.set("date_posted", "month");
-  const res = await fetch(url, {
-    headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": "jsearch.p.rapidapi.com" },
-  });
-  if (!res.ok) throw new Error(`JSearch responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const body = (await res.json()) as { data?: JSearchJob[] | { jobs?: JSearchJob[] } };
-  const list = Array.isArray(body.data) ? body.data : (body.data?.jobs ?? []);
-  console.info(`[jobs] JSearch returned ${list.length} listings`, JSON.stringify(Object.keys((body.data as object) ?? {})).slice(0, 120));
+  // JSearch v5 serves search at /search-v2 with cursor pagination (legacy /search returns 404).
+  const cache = edgeCache();
+  const cacheKey = new Request(
+    `https://fresheronly.cache/jsearch?q=${encodeURIComponent(query)}&c=${encodeURIComponent(country)}`,
+  );
+  let list: JSearchJob[] | null = null;
+  if (cache) {
+    const hit = await cache.match(cacheKey);
+    if (hit) list = (await hit.json()) as JSearchJob[];
+  }
+  if (!list) {
+    list = await fetchJSearchRaw(apiKey, query, country);
+    if (cache && list.length > 0) {
+      await cache.put(
+        cacheKey,
+        new Response(JSON.stringify(list), {
+          headers: { "content-type": "application/json", "cache-control": `max-age=${JSEARCH_CACHE_SECONDS}` },
+        }),
+      );
+    }
+  }
+  console.info(`[jobs] JSearch returned ${list.length} listings`);
   return list.map((j) => {
     const text = `${j.job_title} ${j.job_description ?? ""}`;
     return {
