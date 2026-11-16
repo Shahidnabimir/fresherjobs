@@ -17,6 +17,15 @@ function formatSalary(min?: number | null, max?: number | null, currency?: strin
   return period && period.toUpperCase() !== "YEAR" ? `${range}/${period.toLowerCase()}` : range;
 }
 
+function countryName(code?: string | null): string | null {
+  if (!code) return null;
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 // ---------- JSearch (RapidAPI) ----------
 interface JSearchJob {
   job_id: string;
@@ -37,18 +46,74 @@ interface JSearchJob {
   job_required_experience?: { required_experience_in_months?: number | null };
 }
 
-export async function fetchJSearchJobs(apiKey: string, query: string): Promise<Job[]> {
-  const url = new URL("https://jsearch.p.rapidapi.com/search");
-  url.searchParams.set("query", query);
-  url.searchParams.set("page", "1");
-  url.searchParams.set("num_pages", "2");
-  url.searchParams.set("date_posted", "month");
-  const res = await fetch(url, {
-    headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": "jsearch.p.rapidapi.com" },
-  });
-  if (!res.ok) throw new Error(`JSearch responded ${res.status}`);
-  const body = (await res.json()) as { data?: JSearchJob[] };
-  return (body.data ?? []).map((j) => {
+const JSEARCH_MAX_PAGES = 3;
+const JSEARCH_CACHE_SECONDS = 60 * 60;
+
+type JSearchBody = { data?: JSearchJob[] | { jobs?: JSearchJob[]; cursor?: string | null } };
+
+/** Edge cache (Cloudflare Cache API) when available; a no-op in local dev. */
+function edgeCache(): Cache | null {
+  const c = (globalThis as { caches?: CacheStorage & { default?: Cache } }).caches;
+  return c?.default ?? null;
+}
+
+async function fetchJSearchRaw(apiKey: string, query: string, country: string): Promise<JSearchJob[]> {
+  const jobs: JSearchJob[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < JSEARCH_MAX_PAGES; page++) {
+    const url = new URL("https://jsearch.p.rapidapi.com/search-v2");
+    url.searchParams.set("query", query);
+    url.searchParams.set("country", country);
+    url.searchParams.set("language", "en");
+    url.searchParams.set("date_posted", "month");
+    if (cursor) url.searchParams.set("cursor", cursor);
+    const res = await fetch(url, {
+      headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": "jsearch.p.rapidapi.com" },
+    });
+    if (!res.ok) {
+      const detail = `JSearch responded ${res.status}: ${(await res.text()).slice(0, 300)}`;
+      if (jobs.length > 0) {
+        console.warn(`[jobs] stopping pagination early — ${detail}`);
+        break;
+      }
+      throw new Error(detail);
+    }
+    const body = (await res.json()) as JSearchBody;
+    const data = body.data;
+    for (const job of Array.isArray(data) ? data : (data?.jobs ?? [])) {
+      if (!jobs.some((j) => j.job_id === job.job_id)) jobs.push(job);
+    }
+    const next = Array.isArray(data) ? null : (data?.cursor ?? null);
+    if (!next || next === cursor) break;
+    cursor = next;
+  }
+  return jobs;
+}
+
+export async function fetchJSearchJobs(apiKey: string, query: string, country = "in"): Promise<Job[]> {
+  // JSearch v5 serves search at /search-v2 with cursor pagination (legacy /search returns 404).
+  const cache = edgeCache();
+  const cacheKey = new Request(
+    `https://fresheronly.cache/jsearch?q=${encodeURIComponent(query)}&c=${encodeURIComponent(country)}`,
+  );
+  let list: JSearchJob[] | null = null;
+  if (cache) {
+    const hit = await cache.match(cacheKey);
+    if (hit) list = (await hit.json()) as JSearchJob[];
+  }
+  if (!list) {
+    list = await fetchJSearchRaw(apiKey, query, country);
+    if (cache && list.length > 0) {
+      await cache.put(
+        cacheKey,
+        new Response(JSON.stringify(list), {
+          headers: { "content-type": "application/json", "cache-control": `max-age=${JSEARCH_CACHE_SECONDS}` },
+        }),
+      );
+    }
+  }
+  console.info(`[jobs] JSearch returned ${list.length} listings`);
+  return list.map((j) => {
     const text = `${j.job_title} ${j.job_description ?? ""}`;
     return {
       id: `js-${j.job_id}`,
@@ -57,7 +122,7 @@ export async function fetchJSearchJobs(apiKey: string, query: string): Promise<J
       field: classifyField(j.job_title),
       jobType: classifyJobType(j.job_title, j.job_employment_type ?? undefined),
       workMode: classifyWorkMode(text, j.job_is_remote),
-      city: j.job_city ?? j.job_country ?? "—",
+      city: j.job_city || countryName(j.job_country) || "—",
       salary: formatSalary(j.job_min_salary, j.job_max_salary, j.job_salary_currency, j.job_salary_period),
       postedAt: j.job_posted_at_datetime_utc ?? new Date().toISOString(),
       applyUrl: j.job_apply_link,
@@ -96,7 +161,7 @@ export async function fetchAdzunaJobs(appId: string, appKey: string, country: st
   url.searchParams.set("max_days_old", "30");
   url.searchParams.set("content-type", "application/json");
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Adzuna responded ${res.status}`);
+  if (!res.ok) throw new Error(`Adzuna responded ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const body = (await res.json()) as { results?: AdzunaJob[] };
   const currency = country === "in" ? "INR" : country === "gb" ? "GBP" : "USD";
   return (body.results ?? []).map((j) => {

@@ -26,6 +26,7 @@ export const getJobs = createServerFn({ method: "GET" }).handler(async (): Promi
       raw = await fetchJSearchJobs(
         jsearchKey,
         process.env["JSEARCH_QUERY"] || DEFAULT_JSEARCH_QUERY,
+        process.env["JSEARCH_COUNTRY"] || "in",
       );
       source = "jsearch";
     } else if (adzunaId && adzunaKey) {
