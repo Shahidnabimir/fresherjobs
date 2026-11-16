@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Job data flows through `getJobs` in `src/lib/jobs/jobs.functions.ts`; providers live in `providers.server.ts` and map into the shared `Job` type — so live APIs can be swapped without touching UI.
+- Every job source must pass `applyFresherFilter` before reaching the UI — the fresher-only rule is the product's core promise.
+- Tracker, profile and theme persist in browser localStorage via `src/lib/app-state.tsx` (no accounts yet); pure state transitions live in `src/lib/tracker.ts` so they stay testable.
+- Relative dates and posted-date filtering use the server's `fetchedAt` as "now" so SSR and client render identically.

@@ -1,23 +1,112 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Info, SearchX } from "lucide-react";
+import { useMemo, useState } from "react";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { JobCard } from "@/components/fresher/job-card";
+import { JobFilters } from "@/components/fresher/job-filters";
+import { Button } from "@/components/ui/button";
+import { useAppState } from "@/lib/app-state";
+import { getJobs } from "@/lib/jobs/jobs.functions";
+import { filterJobs, hasProfile, matchProfile, rankJobs } from "@/lib/jobs/search";
+import { DEFAULT_FILTERS, FIELDS, type JobFilters as Filters } from "@/lib/jobs/types";
+
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "FresherOnly — Fresher jobs, trainee programs & internships" },
+      {
+        name: "description",
+        content: "A job feed only for freshers with 0–1 year experience: IT, finance, marketing, core engineering, design, HR and sales.",
+      },
+      { property: "og:title", content: "FresherOnly — Fresher jobs, trainee programs & internships" },
+      {
+        property: "og:description",
+        content: "Every listing verified for 0–1 year experience. Search, filter and track your applications.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  loader: () => getJobs(),
+  staleTime: 5 * 60 * 1000,
+  component: FeedPage,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+const SOURCE_LABEL = { sample: "Sample listings", jsearch: "Live · JSearch", adzuna: "Live · Adzuna" } as const;
+
+function FeedPage() {
+  const { jobs, source, excludedCount, fetchedAt, notice } = Route.useLoaderData();
+  const { profile } = useAppState();
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const profileSet = hasProfile(profile);
+
+  const visible = useMemo(
+    () => rankJobs(filterJobs(jobs, filters, fetchedAt), profile),
+    [jobs, filters, fetchedAt, profile],
+  );
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
+      <section className="max-w-2xl">
+        <p className="eyebrow">For 0–1 year experience · All industries</p>
+        <h1 className="mt-3 text-4xl font-bold leading-[1.05] text-foreground sm:text-5xl">
+          First jobs only.
+          <br />
+          <span className="text-muted-foreground">No “3+ years” surprises.</span>
+        </h1>
+        <p className="mt-4 text-[15px] text-muted-foreground">
+          Entry-level roles, graduate trainee programs and internships — every listing checked for 0–1 year experience.
+        </p>
+      </section>
+
+      <div className="mt-8">
+        <JobFilters value={filters} onChange={setFilters} />
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-foreground">
+          <span className="font-semibold">{visible.length}</span>{" "}
+          <span className="text-muted-foreground">
+            fresher {visible.length === 1 ? "role" : "roles"}
+            {profileSet && " · profile matches first"}
+          </span>
+        </p>
+        <p className="font-mono text-xs text-muted-foreground">
+          {SOURCE_LABEL[source]}
+          {excludedCount > 0 && ` · ${excludedCount} non-fresher listings hidden`}
+        </p>
+      </div>
+
+      {notice && (
+        <p className="mt-3 flex items-center gap-2 rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
+          <Info className="size-4" /> {notice}
+        </p>
+      )}
+
+      {visible.length > 0 ? (
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {visible.map((job, i) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              now={fetchedAt}
+              index={i}
+              match={profileSet ? matchProfile(job, profile) : null}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="card-surface mt-5 flex flex-col items-center gap-3 px-6 py-16 text-center">
+          <SearchX className="size-8 text-muted-foreground" />
+          <p className="font-display text-lg font-semibold text-foreground">No fresher roles match these filters</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Try a wider date range or another field — we have roles across {FIELDS.length} fields.
+          </p>
+          <Button variant="outline" onClick={() => setFilters(DEFAULT_FILTERS)}>
+            Clear filters
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
