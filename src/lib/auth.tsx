@@ -29,10 +29,3 @@ export function useAuth(): AuthState {
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }
-
-/** Only allow same-site relative paths as a post-login destination. */
-export function safeRedirect(value: unknown): string {
-  if (typeof value !== "string") return "/";
-  if (!value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/";
-  return value;
-}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeRedirect } from "./auth";
+import { safeRedirect } from "./redirect";
 
 describe("safeRedirect", () => {
   it("keeps same-site paths", () => expect(safeRedirect("/tracker")).toBe("/tracker"));
