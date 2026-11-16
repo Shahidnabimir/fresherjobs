@@ -71,7 +71,9 @@ async function fetchJSearchRaw(apiKey: string, query: string, country: string): 
     }
     const body = (await res.json()) as JSearchBody;
     const data = body.data;
-    jobs.push(...(Array.isArray(data) ? data : (data?.jobs ?? [])));
+    for (const job of Array.isArray(data) ? data : (data?.jobs ?? [])) {
+      if (!jobs.some((j) => j.job_id === job.job_id)) jobs.push(job);
+    }
     const next = Array.isArray(data) ? null : (data?.cursor ?? null);
     if (!next || next === cursor) break;
     cursor = next;
