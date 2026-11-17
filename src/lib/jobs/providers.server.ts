@@ -51,10 +51,47 @@ const JSEARCH_CACHE_SECONDS = 60 * 60;
 
 type JSearchBody = { data?: JSearchJob[] | { jobs?: JSearchJob[]; cursor?: string | null } };
 
-/** Edge cache (Cloudflare Cache API) when available; a no-op in local dev. */
+/** Edge cache (Cloudflare Cache API) when the runtime supports it; null otherwise. */
 function edgeCache(): Cache | null {
-  const c = (globalThis as { caches?: CacheStorage & { default?: Cache } }).caches;
-  return c?.default ?? null;
+  try {
+    const c = (globalThis as { caches?: CacheStorage & { default?: Cache } }).caches;
+    return c?.default ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// In-memory fallback per server instance; the hosted runtime may reject the Cache API at call time.
+const memoryCache = new Map<string, { expires: number; list: JSearchJob[] }>();
+
+async function readCache(key: string): Promise<JSearchJob[] | null> {
+  const mem = memoryCache.get(key);
+  if (mem && mem.expires > Date.now()) return mem.list;
+  const cache = edgeCache();
+  if (!cache) return null;
+  try {
+    const hit = await cache.match(new Request(key));
+    return hit ? ((await hit.json()) as JSearchJob[]) : null;
+  } catch (error) {
+    console.warn("[jobs] edge cache unavailable, skipping read", String(error));
+    return null;
+  }
+}
+
+async function writeCache(key: string, list: JSearchJob[]): Promise<void> {
+  memoryCache.set(key, { expires: Date.now() + JSEARCH_CACHE_SECONDS * 1000, list });
+  const cache = edgeCache();
+  if (!cache) return;
+  try {
+    await cache.put(
+      new Request(key),
+      new Response(JSON.stringify(list), {
+        headers: { "content-type": "application/json", "cache-control": `max-age=${JSEARCH_CACHE_SECONDS}` },
+      }),
+    );
+  } catch (error) {
+    console.warn("[jobs] edge cache unavailable, skipping write", String(error));
+  }
 }
 
 async function fetchJSearchRaw(apiKey: string, query: string, country: string): Promise<JSearchJob[]> {
@@ -92,25 +129,11 @@ async function fetchJSearchRaw(apiKey: string, query: string, country: string): 
 
 export async function fetchJSearchJobs(apiKey: string, query: string, country = "in"): Promise<Job[]> {
   // JSearch v5 serves search at /search-v2 with cursor pagination (legacy /search returns 404).
-  const cache = edgeCache();
-  const cacheKey = new Request(
-    `https://fresheronly.cache/jsearch?q=${encodeURIComponent(query)}&c=${encodeURIComponent(country)}`,
-  );
-  let list: JSearchJob[] | null = null;
-  if (cache) {
-    const hit = await cache.match(cacheKey);
-    if (hit) list = (await hit.json()) as JSearchJob[];
-  }
+  const cacheKey = `https://fresheronly.cache/jsearch?q=${encodeURIComponent(query)}&c=${encodeURIComponent(country)}`;
+  let list = await readCache(cacheKey);
   if (!list) {
     list = await fetchJSearchRaw(apiKey, query, country);
-    if (cache && list.length > 0) {
-      await cache.put(
-        cacheKey,
-        new Response(JSON.stringify(list), {
-          headers: { "content-type": "application/json", "cache-control": `max-age=${JSEARCH_CACHE_SECONDS}` },
-        }),
-      );
-    }
+    if (list.length > 0) await writeCache(cacheKey, list);
   }
   console.info(`[jobs] JSearch returned ${list.length} listings`);
   return list.map((j) => {

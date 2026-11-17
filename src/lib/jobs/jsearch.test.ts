@@ -48,3 +48,25 @@ describe("JSearch live feed", () => {
     expect(excludedCount).toBe(3);
   });
 });
+
+describe("JSearch on the hosted runtime", () => {
+  it("still returns live jobs when the edge cache throws", async () => {
+    const broken = {
+      default: {
+        match: async () => {
+          throw new Error("Cache API is not yet supported for dynamically-loaded workers.");
+        },
+        put: async () => {
+          throw new Error("Cache API is not yet supported for dynamically-loaded workers.");
+        },
+      },
+    };
+    vi.stubGlobal("caches", broken);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ data: { jobs: [job("z", "Graduate Trainee", 0)] } }))),
+    );
+    const jobs = await fetchJSearchJobs("test-key", "cache-failure-query");
+    expect(jobs.map((j) => j.id)).toEqual(["js-z"]);
+  });
+});
