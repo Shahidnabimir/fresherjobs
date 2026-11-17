@@ -36,3 +36,4 @@ use the editor.
 - Relative dates and posted-date filtering use the server's `fetchedAt` as "now" so SSR and client render identically.
 - JSearch calls use `/search-v2` with cursor pagination, a small page cap and an edge cache, because every page costs a request from the free monthly quota.
 - Auth session state comes from the single `AuthProvider` in `src/lib/auth.tsx` (one `onAuthStateChange` listener); the job feed stays public and `/auth` is the only sign-in route — so there is one source of truth for "signed in".
+- Résumés live in the private `resumes` storage bucket under `<userId>/`, with storage policies scoped to the owner's folder; upload rules are in `src/lib/resume.ts` — so files stay private without a separate table.

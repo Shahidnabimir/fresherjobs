@@ -21,6 +21,7 @@ import { EMPTY_PROFILE, FIELDS, type Field, type FresherProfile } from "@/lib/jo
 import { cn } from "@/lib/utils";
 
 import { FIELD_ICONS } from "./field-icon";
+import { ResumeUpload } from "./resume-upload";
 
 const YEARS = [2023, 2024, 2025, 2026, 2027];
 
@@ -121,6 +122,8 @@ export function ProfileDialog() {
               })}
             </div>
           </div>
+
+          <ResumeUpload />
         </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
