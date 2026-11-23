@@ -3,9 +3,9 @@ import { ArrowUpRight, Bookmark, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { FIELD_ICONS } from "@/components/fresher/field-icon";
+import { ApplicationStatus } from "@/components/fresher/application-status";
 import { StageBadge } from "@/components/fresher/stage-badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,19 +99,10 @@ function StageList({ stage, entries }: { stage: TrackerStage; entries: TrackerEn
   );
 }
 
-const MOVE_OPTIONS = [
-  { value: "saved", label: "Saved" },
-  { value: "applied", label: "Applied" },
-  { value: "interviewing", label: "Interviewing" },
-  { value: "result:offer", label: "Result · Offer" },
-  { value: "result:rejected", label: "Result · Rejected" },
-];
-
 function TrackerCard({ entry }: { entry: TrackerEntry }) {
-  const { move, setNotes, remove } = useAppState();
+  const { setNotes, remove } = useAppState();
   const { job } = entry;
   const Icon = FIELD_ICONS[job.field];
-  const current = entry.stage === "result" ? `result:${entry.outcome ?? "offer"}` : entry.stage;
 
   return (
     <article
@@ -127,7 +118,7 @@ function TrackerCard({ entry }: { entry: TrackerEntry }) {
             <Icon className="size-3.5" /> {job.field} · {job.jobType}
           </span>
         </div>
-        <h3 className="mt-2 text-lg font-semibold leading-snug text-foreground">{job.title}</h3>
+        <h3 className="mt-2 text-lg font-semibold leading-snug text-foreground"><Link to="/jobs/$jobId" params={{ jobId: job.id }} className="hover:underline">{job.title}</Link></h3>
         <p className="text-sm text-muted-foreground">
           {job.company} · {job.city} · {job.workMode}
         </p>
@@ -147,24 +138,7 @@ function TrackerCard({ entry }: { entry: TrackerEntry }) {
 
       <div className="flex flex-col gap-2 sm:border-l sm:pl-4">
         <span className="eyebrow">Move to</span>
-        <Select
-          value={current}
-          onValueChange={(v) => {
-            const [stage, outcome] = v.split(":") as [TrackerStage, "offer" | "rejected" | undefined];
-            move(job.id, stage, outcome ?? null);
-          }}
-        >
-          <SelectTrigger aria-label="Move to stage" className="h-10 bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {MOVE_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ApplicationStatus job={job} />
         <Button asChild size="sm" variant="outline" className="mt-auto">
           <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">
             Open listing <ArrowUpRight />

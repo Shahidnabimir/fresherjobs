@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { Info, SearchX } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -6,7 +7,7 @@ import { JobCard } from "@/components/fresher/job-card";
 import { JobFilters } from "@/components/fresher/job-filters";
 import { Button } from "@/components/ui/button";
 import { useAppState } from "@/lib/app-state";
-import { getJobs } from "@/lib/jobs/jobs.functions";
+import { jobsQueryOptions } from "@/lib/jobs/query";
 import { filterJobs, hasProfile, matchProfile, rankJobs } from "@/lib/jobs/search";
 import { DEFAULT_FILTERS, FIELDS, type JobFilters as Filters } from "@/lib/jobs/types";
 
@@ -27,7 +28,12 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  loader: () => getJobs(),
+  loader: ({ context }) => context.queryClient.ensureQueryData(jobsQueryOptions),
+  errorComponent: function FeedError() {
+    const router = useRouter();
+    return <div className="mx-auto max-w-6xl px-4 py-12" role="alert"><p>Jobs couldn’t be loaded.</p><Button className="mt-4" onClick={() => void router.invalidate()}>Try again</Button></div>;
+  },
+  notFoundComponent: () => <p className="px-4 py-12">Job feed unavailable.</p>,
   staleTime: 5 * 60 * 1000,
   component: FeedPage,
 });
@@ -35,7 +41,7 @@ export const Route = createFileRoute("/")({
 const SOURCE_LABEL = { jsearch: "Live · JSearch", adzuna: "Live · Adzuna" } as const;
 
 function FeedPage() {
-  const { jobs, source, excludedCount, fetchedAt, notice } = Route.useLoaderData();
+  const { data: { jobs, source, excludedCount, fetchedAt, notice } } = useSuspenseQuery(jobsQueryOptions);
   const { profile } = useAppState();
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const profileSet = hasProfile(profile);

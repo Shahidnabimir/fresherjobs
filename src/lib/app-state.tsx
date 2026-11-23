@@ -3,7 +3,7 @@ import { useCallback, useContext, useEffect, useMemo, useState, type ReactNode }
 import { AppStateContext, type AppState } from "./app-state-context";
 import { EMPTY_PROFILE, type FresherProfile } from "./jobs/types";
 import { THEME_KEY } from "./theme";
-import { moveJob, removeJob, saveJob, updateNotes, type TrackerState } from "./tracker";
+import { moveJob, removeJob, saveJob, setJobStatus, updateNotes, type TrackerState } from "./tracker";
 
 const TRACKER_KEY = "fresheronly.tracker.v1";
 const PROFILE_KEY = "fresheronly.profile.v1";
@@ -54,6 +54,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       ready,
       tracker,
       save: (job) => setTracker((s) => saveJob(s, job, Date.now())),
+      setStatus: (job, status) => setTracker((s) => setJobStatus(s, job, status, Date.now())),
       move: (jobId, stage, outcome) => setTracker((s) => moveJob(s, jobId, stage, Date.now(), outcome)),
       setNotes: (jobId, notes) => setTracker((s) => updateNotes(s, jobId, notes, Date.now())),
       remove: (jobId) => setTracker((s) => removeJob(s, jobId)),

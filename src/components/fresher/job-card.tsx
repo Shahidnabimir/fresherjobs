@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Bookmark, BookmarkCheck, Clock, IndianRupee, MapPin, Sparkles, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,7 +63,7 @@ export function JobCard({ job, now, match, index }: JobCardProps) {
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[17px] font-semibold leading-snug text-foreground">{job.title}</h3>
+          <h3 className="text-[17px] font-semibold leading-snug text-foreground"><Link to="/jobs/$jobId" params={{ jobId: job.id }} className="hover:underline">{job.title}</Link></h3>
           <p className="mt-0.5 text-sm text-muted-foreground">{job.company}</p>
         </div>
         <Button
@@ -111,12 +112,8 @@ export function JobCard({ job, now, match, index }: JobCardProps) {
           <Clock className="size-3.5" />
           {timeAgo(job.postedAt, now)}
         </span>
-        <div className="flex items-center gap-2">
-          {!entry && (
-            <Button variant="outline" size="sm" onClick={handleSave}>
-              Save
-            </Button>
-          )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button asChild variant="outline" size="sm"><Link to="/jobs/$jobId" params={{ jobId: job.id }}>View details</Link></Button>
           <Button asChild size="sm">
             <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" onClick={handleApply}>
               Apply Now <ArrowUpRight />

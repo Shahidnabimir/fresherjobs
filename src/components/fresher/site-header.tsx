@@ -27,7 +27,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:px-6">
+      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-2 px-4 py-2 sm:h-14 sm:flex-nowrap sm:px-6 sm:py-0">
         <Link to="/" className="mr-2 flex items-center gap-2">
           <span className="grid size-7 place-items-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground">
             F
@@ -37,7 +37,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="ml-2 flex items-center gap-1 sm:ml-4">
+        <nav className="order-last flex w-full items-center justify-center gap-1 sm:order-none sm:ml-4 sm:w-auto">
           <Link to="/" className={navLink} activeOptions={{ exact: true }}>
             Jobs
           </Link>

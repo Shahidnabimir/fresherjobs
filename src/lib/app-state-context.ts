@@ -11,6 +11,7 @@ export interface AppState {
   ready: boolean;
   tracker: TrackerState;
   save: (job: Job) => void;
+  setStatus: (job: Job, status: string) => void;
   move: (jobId: string, stage: TrackerStage, outcome?: TrackerOutcome | null) => void;
   setNotes: (jobId: string, notes: string) => void;
   remove: (jobId: string) => void;
